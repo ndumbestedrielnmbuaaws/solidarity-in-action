@@ -1,0 +1,2142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Solidarity in Action — Live Classroom</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&family=Roboto:wght@300;400;500&display=swap');
+
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+:root{
+  --bg:#202124;
+  --surface:#292b2f;
+  --card:#3c4043;
+  --border:#5f6368;
+  --accent:#8ab4f8;
+  --accent2:#81c995;
+  --warn:#f28b82;
+  --yellow:#fdd663;
+  --text:#e8eaed;
+  --muted:#9aa0a6;
+  --board-bg:#ffffff;
+  --bar-h:72px;
+  --top-h:56px;
+}
+
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Roboto',sans-serif;overflow:hidden}
+
+/* ── TOP BAR ── */
+#topbar{
+  position:fixed;top:0;left:0;right:0;height:var(--top-h);
+  background:var(--bg);
+  display:flex;align-items:center;padding:0 16px;gap:12px;
+  z-index:100;border-bottom:1px solid #ffffff0f;
+}
+.logo-text{font-family:'Google Sans',sans-serif;font-weight:700;font-size:1.05rem;color:var(--text);white-space:nowrap}
+.logo-text span{color:#8ab4f8}
+.session-chip{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:20px;padding:4px 14px;
+  font-size:.72rem;color:var(--muted);font-family:monospace;
+}
+.live-pill{
+  display:flex;align-items:center;gap:6px;
+  background:#f282022a;border:1px solid #f2820244;
+  border-radius:20px;padding:4px 12px;
+  font-size:.72rem;font-weight:500;color:#fdd663;
+}
+.live-dot{width:7px;height:7px;border-radius:50%;background:#fdd663;animation:blink 1.2s ease-in-out infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+.spacer{flex:1}
+.top-btn{
+  display:flex;align-items:center;justify-content:center;
+  width:36px;height:36px;border-radius:50%;border:none;
+  background:transparent;color:var(--text);cursor:pointer;font-size:1rem;
+  transition:background .15s;
+}
+.top-btn:hover{background:var(--card)}
+.top-btn.active{background:var(--accent)22;color:var(--accent)}
+#participants-count{
+  display:flex;align-items:center;gap:6px;
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:20px;padding:5px 14px;font-size:.78rem;color:var(--text);
+}
+#ndi-badge{
+  display:flex;align-items:center;gap:6px;
+  background:#8ab4f81a;border:1px solid #8ab4f833;
+  border-radius:20px;padding:5px 14px;font-size:.72rem;font-weight:500;
+  color:var(--accent);cursor:pointer;transition:all .2s;
+}
+#ndi-badge:hover{background:#8ab4f833}
+#ndi-badge .ndot{width:6px;height:6px;border-radius:50%;background:var(--accent);animation:blink 2s infinite}
+
+/* ── MAIN STAGE ── */
+#stage{
+  position:fixed;
+  top:var(--top-h);left:0;right:0;
+  bottom:var(--bar-h);
+  display:flex;overflow:hidden;
+}
+
+/* ── MAIN VIEW (board or speaker) ── */
+#main-view{
+  flex:1;min-width:0;
+  position:relative;
+  background:#000;
+  display:flex;flex-direction:column;
+}
+
+/* ── WHITEBOARD ── */
+#board-container{
+  flex:1;position:relative;background:var(--board-bg);overflow:hidden;
+}
+#board{position:absolute;inset:0;touch-action:none}
+#board-label{
+  position:absolute;top:12px;left:12px;
+  background:rgba(0,0,0,.6);color:#fff;
+  font-size:.7rem;font-weight:500;letter-spacing:.5px;
+  padding:5px 12px;border-radius:20px;
+  pointer-events:none;z-index:5;backdrop-filter:blur(4px);
+}
+#board-actions{
+  position:absolute;top:12px;right:12px;
+  display:flex;gap:6px;z-index:5;
+}
+.b-btn{
+  background:rgba(0,0,0,.6);color:#fff;border:none;border-radius:8px;
+  padding:6px 12px;font-size:.72rem;font-family:'Roboto',sans-serif;cursor:pointer;
+  backdrop-filter:blur(4px);transition:background .15s;display:flex;align-items:center;gap:5px;
+}
+.b-btn:hover{background:rgba(0,0,0,.8)}
+/* ── TYPING LAYER (keyboard writing on board) ── */
+#type-layer{
+  position:absolute;inset:0;
+  z-index:18;
+  pointer-events:none;
+  overflow:hidden;
+}
+/* individual draggable text block on board */
+.type-block{
+  position:absolute;
+  pointer-events:all;
+  cursor:move;
+  user-select:none;
+  min-width:40px;
+  display:inline-flex;
+  align-items:flex-start;
+}
+.type-block .type-content{
+  outline:none;
+  white-space:pre-wrap;
+  word-break:break-word;
+  line-height:1.4;
+  cursor:text;
+  min-width:20px;
+  min-height:1em;
+}
+.type-block.selected .type-content{
+  outline:2px dashed var(--accent);
+  outline-offset:3px;
+  border-radius:3px;
+}
+.type-block .delete-handle{
+  position:absolute;top:-10px;right:-10px;
+  width:20px;height:20px;border-radius:50%;
+  background:var(--warn);color:#fff;border:none;
+  font-size:10px;cursor:pointer;display:none;
+  align-items:center;justify-content:center;
+  z-index:2;line-height:1;
+}
+.type-block.selected .delete-handle{display:flex}
+.type-block .drag-handle{
+  position:absolute;top:-10px;left:0;
+  font-size:10px;color:var(--accent);
+  display:none;cursor:grab;padding:2px 4px;
+  background:rgba(32,33,36,.8);border-radius:4px;
+  user-select:none;
+}
+.type-block.selected .drag-handle{display:block}
+
+/* keyboard cursor for new text placement */
+#kboard-cursor{
+  position:absolute;
+  width:2px;height:1.4em;
+  background:var(--accent);
+  display:none;
+  animation:caret .9s step-end infinite;
+  z-index:22;pointer-events:none;
+  border-radius:1px;
+}
+@keyframes caret{0%,100%{opacity:1}50%{opacity:0}}
+
+/* typing mode indicator */
+#type-mode-bar{
+  position:absolute;bottom:52px;left:50%;transform:translateX(-50%);
+  display:none;
+  background:rgba(138,180,248,.15);
+  border:1px solid rgba(138,180,248,.4);
+  backdrop-filter:blur(8px);
+  border-radius:20px;padding:5px 16px;
+  font-size:.72rem;color:var(--accent);
+  z-index:25;white-space:nowrap;
+  gap:10px;align-items:center;
+}
+#type-mode-bar.show{display:flex}
+#type-mode-bar kbd{
+  background:rgba(138,180,248,.2);
+  border:1px solid rgba(138,180,248,.4);
+  border-radius:4px;padding:1px 6px;font-size:.68rem;
+  font-family:monospace;color:var(--text);
+}
+
+/* ── MODE SWITCHER PILL ── */
+#mode-switcher{
+  display:flex;
+  background:var(--bg);
+  border:1px solid var(--border);
+  border-radius:22px;
+  padding:3px;
+  gap:2px;
+  flex-shrink:0;
+}
+.mode-pill{
+  display:flex;align-items:center;gap:6px;
+  padding:5px 16px;
+  border-radius:18px;border:none;
+  font-family:'Google Sans',sans-serif;
+  font-size:.78rem;font-weight:600;
+  cursor:pointer;
+  color:var(--muted);
+  background:transparent;
+  transition:all .2s;
+  white-space:nowrap;
+}
+.mode-pill:hover{color:var(--text);background:var(--card)}
+.mode-pill.active{
+  background:var(--accent);
+  color:#202124;
+  box-shadow:0 2px 8px rgba(138,180,248,.35);
+}
+#mode-type-btn.active{
+  background:#c58af9;
+  color:#202124;
+  box-shadow:0 2px 8px rgba(197,138,249,.35);
+}
+
+/* ── BOARD MODE INDICATOR BAR (top of whiteboard) ── */
+#board-mode-indicator{
+  position:absolute;top:12px;left:50%;transform:translateX(-50%);
+  display:flex;align-items:center;gap:10px;
+  background:rgba(32,33,36,.88);backdrop-filter:blur(10px);
+  border-radius:22px;padding:5px 18px;
+  font-size:.72rem;z-index:6;pointer-events:none;
+  border:1px solid rgba(255,255,255,.1);
+  transition:all .3s;white-space:nowrap;
+}
+#bmi-dot{
+  width:8px;height:8px;border-radius:50%;
+  transition:background .3s,box-shadow .3s;
+}
+#bmi-label{color:var(--text);font-weight:500;letter-spacing:.3px}
+#bmi-hint{color:var(--muted);font-size:.68rem}
+
+/* ── TYPING MODE HINT BAR (bottom) ── */
+#type-mode-bar{
+  position:absolute;bottom:52px;left:50%;transform:translateX(-50%);
+  display:none;
+  background:rgba(197,138,249,.12);
+  border:1px solid rgba(197,138,249,.35);
+  backdrop-filter:blur(8px);
+  border-radius:20px;padding:5px 16px;
+  font-size:.72rem;color:#c58af9;
+  z-index:25;white-space:nowrap;
+  gap:10px;align-items:center;
+}
+#type-mode-bar.show{display:flex}
+#type-mode-bar kbd{
+  background:rgba(197,138,249,.18);
+  border:1px solid rgba(197,138,249,.35);
+  border-radius:4px;padding:1px 6px;font-size:.68rem;
+  font-family:monospace;color:var(--text);
+}
+
+/* font controls in toolbar */
+.font-select{
+  background:var(--card);border:1px solid var(--border);
+  border-radius:8px;padding:4px 8px;color:var(--text);
+  font-family:'Roboto',sans-serif;font-size:.72rem;outline:none;
+  cursor:pointer;transition:border-color .15s;
+}
+.font-select:focus{border-color:var(--accent)}
+.font-num{
+  background:var(--card);border:1px solid var(--border);
+  border-radius:8px;padding:4px 6px;color:var(--text);
+  font-family:'Roboto',sans-serif;font-size:.72rem;outline:none;
+  width:46px;text-align:center;
+}
+.font-num:focus{border-color:var(--accent)}
+.fmt-btn{
+  width:28px;height:28px;border-radius:6px;border:1px solid var(--border);
+  background:transparent;color:var(--muted);
+  cursor:pointer;font-size:.82rem;transition:all .15s;
+  display:flex;align-items:center;justify-content:center;
+}
+.fmt-btn:hover{background:var(--card);color:var(--text)}
+.fmt-btn.on{background:var(--accent)22;color:var(--accent);border-color:var(--accent)44}
+
+/* old simple text-cursor kept but hidden by default */
+#text-cursor{
+  position:absolute;display:none;
+  border:2px dashed var(--accent);
+  background:rgba(255,255,255,.9);color:#202124;
+  padding:4px 8px;outline:none;
+  font-size:15px;font-family:'Roboto',sans-serif;
+  min-width:80px;border-radius:4px;z-index:20;
+}
+
+/* ── TEACHER TOOLBAR (floating, above whiteboard) ── */
+#teacher-toolbar{
+  position:absolute;bottom:12px;left:50%;transform:translateX(-50%);
+  display:none;
+  background:rgba(32,33,36,.92);backdrop-filter:blur(12px);
+  border:1px solid #ffffff1a;border-radius:14px;
+  padding:8px 12px;gap:4px;
+  z-index:10;align-items:center;flex-wrap:wrap;justify-content:center;
+}
+#teacher-toolbar.visible{display:flex}
+.tb-sep{width:1px;height:24px;background:#ffffff1f;margin:0 4px}
+.tb-btn{
+  width:36px;height:36px;border-radius:10px;border:none;
+  background:transparent;color:var(--muted);
+  cursor:pointer;font-size:.9rem;transition:all .15s;
+  display:flex;align-items:center;justify-content:center;
+}
+.tb-btn:hover{background:var(--card);color:var(--text)}
+.tb-btn.active{background:var(--accent)22;color:var(--accent)}
+.tb-btn.danger.active{background:var(--warn)22;color:var(--warn)}
+.tb-color{
+  width:22px;height:22px;border-radius:50%;border:2px solid transparent;
+  cursor:pointer;transition:transform .15s;
+}
+.tb-color:hover{transform:scale(1.25)}
+.tb-color.on{border-color:#fff}
+.brush-slider{
+  -webkit-appearance:none;width:70px;height:3px;
+  border-radius:3px;background:var(--border);outline:none;
+}
+.brush-slider::-webkit-slider-thumb{
+  -webkit-appearance:none;width:12px;height:12px;border-radius:50%;
+  background:var(--accent);cursor:pointer;
+}
+
+/* ── SIDE TILES ── */
+#tiles-col{
+  width:200px;flex-shrink:0;
+  background:#000;
+  overflow-y:auto;
+  display:flex;flex-direction:column;
+  gap:4px;padding:4px;
+  border-left:1px solid #ffffff08;
+}
+#tiles-col::-webkit-scrollbar{width:4px}
+#tiles-col::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px}
+
+.tile{
+  width:100%;border-radius:10px;overflow:hidden;
+  position:relative;flex-shrink:0;
+  aspect-ratio:16/10;background:var(--surface);
+  border:2px solid transparent;transition:border-color .2s;cursor:pointer;
+}
+.tile:hover{border-color:#ffffff22}
+.tile.speaking{border-color:var(--accent2)!important}
+.tile.hand-up{border-color:var(--yellow)!important}
+.tile.pinned{border-color:var(--accent)!important}
+.tile-inner{
+  width:100%;height:100%;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:6px;
+  background:linear-gradient(135deg,var(--surface),var(--card));
+}
+.tile-avatar{
+  width:36px;height:36px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-weight:700;font-size:.85rem;color:#fff;
+  flex-shrink:0;
+}
+.tile-name{
+  font-size:.62rem;color:var(--muted);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  max-width:90%;text-align:center;
+}
+.tile-icons{
+  position:absolute;bottom:5px;left:5px;
+  display:flex;gap:3px;
+}
+.t-icon{
+  width:18px;height:18px;border-radius:4px;
+  background:rgba(0,0,0,.7);display:flex;align-items:center;justify-content:center;
+  font-size:9px;
+}
+.hand-flag{
+  position:absolute;top:4px;right:4px;font-size:12px;
+  animation:wave .5s ease-in-out infinite alternate;
+}
+@keyframes wave{from{transform:rotate(-12deg)}to{transform:rotate(12deg)}}
+.teacher-crown{
+  position:absolute;top:4px;left:4px;font-size:11px;
+}
+.tile-menu-btn{
+  position:absolute;top:4px;right:4px;
+  background:rgba(0,0,0,.6);border:none;color:#fff;
+  border-radius:50%;width:20px;height:20px;font-size:10px;
+  cursor:pointer;display:none;align-items:center;justify-content:center;
+}
+.tile:hover .tile-menu-btn{display:flex}
+
+/* ── BOTTOM CONTROL BAR ── */
+#ctrlbar{
+  position:fixed;bottom:0;left:0;right:0;height:var(--bar-h);
+  background:var(--bg);border-top:1px solid #ffffff0f;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 24px;z-index:100;
+}
+.bar-group{display:flex;align-items:center;gap:8px}
+.ctrl-btn{
+  display:flex;flex-direction:column;align-items:center;gap:4px;
+  background:var(--card);border:none;border-radius:50%;
+  width:48px;height:48px;cursor:pointer;color:var(--text);
+  font-size:1.1rem;transition:all .18s;justify-content:center;
+}
+.ctrl-btn:hover{background:#5f636822;transform:scale(1.06)}
+.ctrl-btn.muted{background:#ea433522;color:var(--warn)}
+.ctrl-btn.active-btn{background:var(--accent)22;color:var(--accent)}
+.ctrl-label{font-size:.58rem;color:var(--muted);font-family:'Roboto',sans-serif;white-space:nowrap;margin-top:2px}
+.ctrl-btn-wrap{display:flex;flex-direction:column;align-items:center;gap:2px}
+.end-call{
+  background:#ea4335;color:#fff;border:none;border-radius:24px;
+  padding:12px 28px;font-size:.85rem;font-weight:500;
+  font-family:'Google Sans',sans-serif;cursor:pointer;transition:all .2s;
+  display:flex;align-items:center;gap:6px;
+}
+.end-call:hover{background:#d93025;transform:scale(1.03)}
+
+/* ── SIDE PANEL (chat/people) ── */
+#side-panel{
+  position:fixed;top:var(--top-h);right:0;bottom:var(--bar-h);
+  width:320px;background:var(--surface);
+  border-left:1px solid #ffffff0f;
+  display:none;flex-direction:column;z-index:90;
+}
+#side-panel.open{display:flex}
+.panel-header{
+  padding:16px 20px;border-bottom:1px solid #ffffff0f;
+  display:flex;align-items:center;justify-content:space-between;
+}
+.panel-title{font-family:'Google Sans',sans-serif;font-size:.9rem;font-weight:500}
+.panel-close{
+  background:none;border:none;color:var(--muted);font-size:1.1rem;
+  cursor:pointer;border-radius:50%;width:32px;height:32px;
+  display:flex;align-items:center;justify-content:center;
+  transition:background .15s;
+}
+.panel-close:hover{background:var(--card)}
+
+/* chat */
+#chat-msgs{
+  flex:1;overflow-y:auto;padding:12px 16px;
+  display:flex;flex-direction:column;gap:10px;
+}
+#chat-msgs::-webkit-scrollbar{width:4px}
+#chat-msgs::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px}
+.msg-row{display:flex;gap:9px;align-items:flex-start}
+.msg-av{
+  width:28px;height:28px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-size:.7rem;font-weight:700;color:#fff;flex-shrink:0;
+}
+.msg-body{}
+.msg-sender{font-size:.7rem;font-weight:500;margin-bottom:3px}
+.msg-sender.teacher-sender{color:var(--accent)}
+.msg-bubble{
+  background:var(--card);border-radius:0 10px 10px 10px;
+  padding:8px 11px;font-size:.78rem;color:var(--text);
+  line-height:1.45;max-width:220px;word-break:break-word;
+}
+.msg-time{font-size:.6rem;color:var(--border);margin-top:4px}
+#chat-input-row{
+  padding:12px 16px;border-top:1px solid #ffffff0f;
+  display:flex;gap:8px;align-items:flex-end;
+}
+#chat-box{
+  flex:1;background:var(--card);border:1px solid var(--border);
+  border-radius:22px;padding:10px 16px;color:var(--text);
+  font-family:'Roboto',sans-serif;font-size:.82rem;
+  outline:none;resize:none;max-height:80px;line-height:1.4;
+  transition:border-color .15s;
+}
+#chat-box:focus{border-color:var(--accent)}
+#chat-send{
+  width:38px;height:38px;border-radius:50%;border:none;
+  background:var(--accent);color:#202124;font-size:1rem;
+  cursor:pointer;transition:all .15s;display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;
+}
+#chat-send:hover{filter:brightness(1.1)}
+
+/* people list */
+#people-list{flex:1;overflow-y:auto;padding:8px 0}
+#people-list::-webkit-scrollbar{width:4px}
+#people-list::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px}
+.person-row{
+  display:flex;align-items:center;gap:10px;
+  padding:8px 16px;transition:background .15s;
+}
+.person-row:hover{background:var(--card)}
+.p-av{
+  width:32px;height:32px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-size:.78rem;font-weight:700;color:#fff;flex-shrink:0;
+}
+.p-info{flex:1;min-width:0}
+.p-name{font-size:.82rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.p-role{font-size:.68rem;color:var(--muted)}
+.p-actions{display:flex;gap:4px}
+.p-icon-btn{
+  background:none;border:none;color:var(--muted);font-size:.8rem;
+  cursor:pointer;border-radius:50%;width:26px;height:26px;
+  display:flex;align-items:center;justify-content:center;transition:all .15s;
+}
+.p-icon-btn:hover{background:var(--card);color:var(--text)}
+.p-icon-btn.muted-icon{color:var(--warn)}
+
+/* ── NDI MODAL ── */
+#overlay{
+  position:fixed;inset:0;background:rgba(0,0,0,.75);
+  z-index:200;display:none;align-items:center;justify-content:center;
+  backdrop-filter:blur(6px);
+}
+#overlay.open{display:flex}
+.modal{
+  background:var(--surface);border:1px solid #ffffff14;
+  border-radius:16px;padding:28px;width:min(520px,95vw);
+  max-height:85vh;overflow-y:auto;
+}
+.modal h2{font-family:'Google Sans',sans-serif;font-size:1.15rem;font-weight:700;margin-bottom:6px}
+.modal-sub{font-size:.78rem;color:var(--muted);margin-bottom:20px}
+.m-section{margin-bottom:22px}
+.m-section h3{
+  font-size:.7rem;font-weight:500;text-transform:uppercase;
+  letter-spacing:1px;color:var(--accent);margin-bottom:12px;
+  padding-bottom:6px;border-bottom:1px solid #ffffff0f;
+}
+.ndi-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+.ndi-field label{display:block;font-size:.7rem;color:var(--muted);margin-bottom:4px}
+.ndi-field input,.ndi-field select{
+  width:100%;background:var(--bg);border:1px solid var(--border);
+  border-radius:8px;padding:8px 12px;color:var(--text);
+  font-family:'Roboto',sans-serif;font-size:.78rem;outline:none;
+  transition:border-color .15s;
+}
+.ndi-field input:focus,.ndi-field select:focus{border-color:var(--accent)}
+.ndi-field select option{background:var(--surface)}
+.int-card{
+  background:var(--bg);border:1px solid #ffffff0f;border-radius:10px;
+  padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;gap:12px;
+  transition:border-color .2s;
+}
+.int-card:hover{border-color:#8ab4f833}
+.int-icon{font-size:1.5rem;flex-shrink:0}
+.int-info{flex:1}
+.int-name{font-size:.82rem;font-weight:500}
+.int-desc{font-size:.7rem;color:var(--muted);margin-top:2px}
+.int-status{
+  font-size:.68rem;padding:3px 10px;border-radius:20px;flex-shrink:0;
+}
+.st-ready{background:#81c9951a;color:var(--accent2);border:1px solid #81c99533}
+.st-avail{background:#8ab4f81a;color:var(--accent);border:1px solid #8ab4f833}
+.st-coming{background:var(--card);color:var(--muted);border:1px solid var(--border)}
+.ndi-info-box{
+  background:var(--bg);border-radius:8px;padding:10px 14px;
+  font-size:.72rem;color:var(--muted);font-family:monospace;line-height:1.9;
+  border:1px solid #ffffff0a;
+}
+.ndi-info-box b{color:var(--text)}
+.modal-btns{display:flex;justify-content:flex-end;gap:8px;margin-top:20px}
+.mbtn{
+  padding:8px 18px;border-radius:8px;border:none;font-size:.8rem;
+  font-family:'Google Sans',sans-serif;cursor:pointer;font-weight:500;transition:all .18s;
+}
+.mbtn-ghost{background:transparent;color:var(--text);border:1px solid var(--border)}
+.mbtn-ghost:hover{border-color:var(--accent);color:var(--accent)}
+.mbtn-primary{background:var(--accent);color:#202124}
+.mbtn-primary:hover{filter:brightness(1.1)}
+
+/* ── JOIN SCREEN ── */
+#join-screen{
+  position:fixed;inset:0;background:var(--bg);z-index:300;
+  display:flex;align-items:center;justify-content:center;
+}
+.join-wrap{
+  background:var(--surface);border:1px solid #ffffff0f;
+  border-radius:20px;padding:40px;width:min(420px,95vw);
+}
+.j-logo{font-family:'Google Sans',sans-serif;font-weight:700;font-size:1.4rem;margin-bottom:6px}
+.j-logo span{color:var(--accent)}
+.j-sub{font-size:.82rem;color:var(--muted);margin-bottom:28px;line-height:1.5}
+.j-field{margin-bottom:16px}
+.j-field label{display:block;font-size:.75rem;font-weight:500;color:var(--muted);margin-bottom:6px}
+.j-field input,.j-field select{
+  width:100%;background:var(--card);border:1px solid var(--border);
+  border-radius:10px;padding:11px 14px;color:var(--text);
+  font-family:'Roboto',sans-serif;font-size:.88rem;outline:none;
+  transition:border-color .2s;
+}
+.j-field input:focus,.j-field select:focus{border-color:var(--accent)}
+.j-field select option{background:var(--surface)}
+.j-join-btn{
+  width:100%;padding:13px;background:var(--accent);color:#202124;
+  border:none;border-radius:10px;font-family:'Google Sans',sans-serif;
+  font-size:.95rem;font-weight:700;cursor:pointer;margin-top:4px;
+  transition:all .2s;letter-spacing:.3px;
+}
+.j-join-btn:hover{filter:brightness(1.08);transform:translateY(-1px)}
+.j-cap{text-align:center;font-size:.7rem;color:var(--muted);margin-top:14px}
+
+/* ── LINKS TAB ── */
+.link-gen-btn{
+  display:flex;align-items:center;gap:8px;
+  width:100%;padding:11px 18px;
+  background:linear-gradient(135deg,#c58af9,#8ab4f8);
+  color:#202124;border:none;border-radius:10px;
+  font-family:'Google Sans',sans-serif;font-size:.85rem;font-weight:700;
+  cursor:pointer;margin-top:14px;
+  transition:all .2s;letter-spacing:.3px;
+  justify-content:center;
+}
+.link-gen-btn:hover{filter:brightness(1.08);transform:translateY(-1px);box-shadow:0 4px 16px rgba(197,138,249,.35)}
+.link-gen-btn:active{transform:translateY(0)}
+.link-result-box{
+  margin-top:16px;background:var(--bg);border:1px solid #c58af933;
+  border-radius:12px;padding:16px;animation:fadeInUp .3s ease;
+}
+@keyframes fadeInUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.link-result-header{display:flex;align-items:center;gap:8px;margin-bottom:12px;font-size:.82rem;font-weight:600;color:var(--accent2)}
+.link-url-wrap{
+  display:flex;align-items:center;gap:8px;
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:8px;padding:8px 12px;margin-bottom:10px;
+}
+.link-url-text{flex:1;font-family:monospace;font-size:.7rem;color:var(--accent);word-break:break-all;line-height:1.5}
+.link-copy-btn{
+  background:var(--accent);color:#202124;border:none;border-radius:7px;
+  padding:6px 12px;font-size:.72rem;font-weight:600;cursor:pointer;
+  white-space:nowrap;transition:filter .15s;flex-shrink:0;
+}
+.link-copy-btn:hover{filter:brightness(1.1)}
+.link-copy-btn.copied{background:var(--accent2)}
+.link-meta-row{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:4px}
+.link-meta-chip{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:3px 10px;font-size:.68rem;color:var(--muted)}
+.link-share-btn{
+  flex:1;display:flex;align-items:center;justify-content:center;gap:5px;
+  padding:8px;background:#c58af91a;border:1px solid #c58af933;
+  border-radius:8px;color:#c58af9;font-size:.75rem;font-weight:600;
+  font-family:'Roboto',sans-serif;cursor:pointer;transition:all .15s;
+}
+.link-share-btn:hover{background:#c58af933;border-color:#c58af966}
+/* Link library entries */
+.link-entry{
+  background:var(--bg);border:1px solid #ffffff0a;border-radius:10px;
+  padding:14px 16px;margin-bottom:8px;transition:border-color .2s;
+}
+.link-entry:hover{border-color:#ffffff14}
+.link-entry.expired{opacity:.55;border-style:dashed}
+.link-entry.revoked{opacity:.4;border-color:#f28b8222}
+.link-entry-top{display:flex;align-items:flex-start;gap:10px;margin-bottom:8px}
+.link-entry-icon{
+  width:36px;height:36px;border-radius:10px;
+  background:linear-gradient(135deg,#c58af922,#8ab4f822);
+  display:flex;align-items:center;justify-content:center;font-size:1rem;flex-shrink:0;
+}
+.link-entry.expired .link-entry-icon,.link-entry.revoked .link-entry-icon{filter:grayscale(1);background:var(--card)}
+.link-entry-meta{flex:1;min-width:0}
+.link-entry-name{font-size:.82rem;font-weight:600;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.link-entry-url{font-family:monospace;font-size:.67rem;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:6px}
+.link-entry-chips{display:flex;gap:5px;flex-wrap:wrap}
+.le-chip{padding:2px 8px;border-radius:10px;font-size:.65rem;font-weight:500}
+.lc-active{background:#81c9951a;color:var(--accent2);border:1px solid #81c99533}
+.lc-expired{background:#5f63681a;color:var(--muted);border:1px solid var(--border)}
+.lc-revoked{background:#f28b821a;color:var(--warn);border:1px solid #f28b8233}
+.lc-expiry{background:#8ab4f81a;color:var(--accent);border:1px solid #8ab4f833}
+.lc-uses{background:#c58af91a;color:#c58af9;border:1px solid #c58af933}
+.link-entry-countdown{
+  font-family:monospace;font-size:.68rem;color:var(--yellow);
+  background:#fdd6631a;border:1px solid #fdd66333;
+  border-radius:6px;padding:2px 7px;
+}
+.link-entry-countdown.danger{color:var(--warn);background:#f28b821a;border-color:#f28b8233}
+.link-entry-actions{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap}
+.le-btn{
+  display:flex;align-items:center;gap:4px;padding:5px 11px;border-radius:7px;
+  border:1px solid var(--border);background:var(--card);color:var(--muted);
+  font-size:.72rem;font-family:'Roboto',sans-serif;cursor:pointer;transition:all .15s;
+}
+.le-btn:hover{border-color:var(--accent);color:var(--accent)}
+.le-btn.le-copy:hover{border-color:var(--accent2);color:var(--accent2)}
+.le-btn.le-revoke{border-color:#f28b8233;color:var(--warn);background:#f28b820a}
+.le-btn.le-revoke:hover{background:#f28b8222}
+.le-btn:disabled{opacity:.3;cursor:default;pointer-events:none}
+/* How it works */
+.link-how-list{display:flex;flex-direction:column;gap:12px}
+.link-how-item{display:flex;gap:12px;align-items:flex-start}
+.link-how-num{
+  width:24px;height:24px;border-radius:50%;flex-shrink:0;
+  background:linear-gradient(135deg,#c58af9,#8ab4f8);
+  color:#202124;font-size:.72rem;font-weight:700;
+  display:flex;align-items:center;justify-content:center;
+}
+.link-how-text{font-size:.78rem;color:var(--muted);line-height:1.55;padding-top:2px}
+
+/* ── REAL VIDEO TILES ── */
+.tile video{
+  position:absolute;inset:0;width:100%;height:100%;
+  object-fit:cover;border-radius:8px;display:block;
+  transform:scaleX(-1); /* mirror self-view */
+}
+.tile video.no-mirror{ transform:none }
+.tile .tile-inner{ position:absolute;inset:0;z-index:1 }
+.tile .tile-icons{ z-index:3 }
+.tile .hand-flag{ z-index:3 }
+.tile .tile-menu-btn{ z-index:3 }
+.tile .cam-off-overlay{
+  position:absolute;inset:0;z-index:2;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:6px;background:linear-gradient(135deg,var(--surface),var(--card));
+}
+.tile .cam-off-overlay .tile-avatar{ width:40px;height:40px;font-size:.95rem }
+.tile .cam-off-overlay .tile-name{ font-size:.65rem;color:var(--muted);text-align:center;padding:0 6px }
+/* Mic level ring on speaking tile */
+.tile.speaking{ box-shadow:0 0 0 2px var(--accent2),0 0 12px rgba(129,201,149,.4)!important }
+/* Permission denied notice */
+#media-denied{
+  position:fixed;top:calc(var(--top-h)+8px);left:50%;
+  transform:translateX(-50%);
+  background:rgba(242,139,130,.18);border:1px solid rgba(242,139,130,.45);
+  backdrop-filter:blur(8px);border-radius:12px;
+  padding:10px 20px;font-size:.78rem;color:var(--warn);
+  z-index:110;display:none;align-items:center;gap:10px;max-width:500px;
+}
+#media-denied.show{ display:flex }
+#media-denied button{
+  background:var(--warn);color:#202124;border:none;
+  border-radius:6px;padding:4px 10px;font-size:.72rem;cursor:pointer;flex-shrink:0;
+}
+
+/* ── TOAST ── */
+#toast{
+  position:fixed;bottom:88px;left:50%;
+  transform:translateX(-50%) translateY(60px);
+  background:var(--surface);border:1px solid #ffffff14;
+  padding:10px 22px;border-radius:10px;font-size:.8rem;
+  z-index:999;transition:transform .3s ease;pointer-events:none;
+  box-shadow:0 4px 20px rgba(0,0,0,.5);
+}
+#toast.show{transform:translateX(-50%) translateY(0)}
+
+/* ── POLL PANEL ── */
+#poll-panel{
+  position:absolute;top:12px;left:12px;
+  background:rgba(32,33,36,.95);backdrop-filter:blur(12px);
+  border:1px solid #ffffff14;border-radius:14px;
+  padding:18px;width:270px;z-index:15;display:none;
+}
+#poll-panel.open{display:block}
+#poll-panel h4{font-size:.85rem;font-weight:500;margin-bottom:14px}
+.poll-row{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.poll-track{flex:1;height:22px;background:var(--card);border-radius:5px;overflow:hidden;position:relative}
+.poll-fill{height:100%;border-radius:5px;transition:width .6s ease}
+.poll-tlabel{font-size:.72rem;color:var(--text);position:absolute;left:8px;top:50%;transform:translateY(-50%);z-index:1}
+.poll-pct{font-size:.72rem;color:var(--muted);width:34px;text-align:right;flex-shrink:0}
+.poll-close-btn{width:100%;margin-top:10px;background:var(--card);border:none;color:var(--muted);border-radius:8px;padding:7px;font-size:.75rem;cursor:pointer;font-family:'Roboto',sans-serif}
+.poll-close-btn:hover{color:var(--text)}
+
+/* ── BROWSER PANEL ── */
+#browser-panel{
+  position:absolute;inset:0;
+  background:#fff;
+  display:none;
+  flex-direction:column;
+  z-index:30;
+}
+#browser-panel.open{display:flex}
+
+#browser-bar{
+  display:flex;align-items:center;gap:8px;
+  padding:8px 12px;
+  background:#292b2f;
+  border-bottom:1px solid #ffffff14;
+  flex-shrink:0;
+}
+.br-nav-btn{
+  width:32px;height:32px;border-radius:50%;border:none;
+  background:transparent;color:#9aa0a6;font-size:1rem;
+  cursor:pointer;display:flex;align-items:center;justify-content:center;
+  transition:background .15s;flex-shrink:0;
+}
+.br-nav-btn:hover{background:#3c4043;color:#e8eaed}
+.br-nav-btn:disabled{opacity:.3;cursor:default}
+
+#browser-url-wrap{
+  flex:1;display:flex;align-items:center;
+  background:#3c4043;border:1px solid #5f636833;
+  border-radius:22px;padding:0 14px;gap:8px;
+  transition:border-color .2s;
+}
+#browser-url-wrap:focus-within{border-color:#8ab4f8}
+#browser-url-wrap .lock-icon{font-size:.8rem;color:#81c995;flex-shrink:0}
+#browser-url{
+  flex:1;border:none;background:transparent;
+  color:#e8eaed;font-family:'Roboto',sans-serif;font-size:.82rem;
+  outline:none;padding:7px 0;
+}
+#browser-url::placeholder{color:#5f6368}
+#browser-go{
+  width:30px;height:30px;border-radius:50%;border:none;
+  background:#8ab4f8;color:#202124;font-size:.85rem;
+  cursor:pointer;display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;transition:filter .15s;
+}
+#browser-go:hover{filter:brightness(1.12)}
+
+.br-quick-btn{
+  display:flex;align-items:center;gap:5px;
+  background:#3c4043;border:1px solid #5f636844;border-radius:8px;
+  padding:5px 11px;color:#9aa0a6;font-size:.72rem;font-family:'Roboto',sans-serif;
+  cursor:pointer;white-space:nowrap;transition:all .15s;flex-shrink:0;
+}
+.br-quick-btn:hover{border-color:#8ab4f8;color:#e8eaed}
+
+#browser-close-btn{
+  width:32px;height:32px;border-radius:50%;border:none;
+  background:#ea433522;color:#f28b82;font-size:1rem;
+  cursor:pointer;display:flex;align-items:center;justify-content:center;
+  transition:background .15s;flex-shrink:0;
+}
+#browser-close-btn:hover{background:#ea433544}
+
+#browser-shortcuts{
+  display:flex;align-items:center;gap:6px;
+  padding:6px 12px;background:#292b2f;
+  border-bottom:1px solid #ffffff0a;
+  flex-wrap:wrap;flex-shrink:0;
+}
+.shortcut-chip{
+  display:flex;align-items:center;gap:4px;
+  background:#3c4043;border:1px solid #5f636833;
+  border-radius:16px;padding:3px 10px;
+  font-size:.68rem;color:#9aa0a6;cursor:pointer;
+  transition:all .15s;
+}
+.shortcut-chip:hover{border-color:#8ab4f866;color:#e8eaed}
+.shortcut-chip span{font-size:.75rem}
+
+#browser-frame-wrap{
+  flex:1;position:relative;background:#f1f3f4;overflow:hidden;
+}
+#browser-iframe{
+  width:100%;height:100%;border:none;
+  display:block;
+}
+#browser-loading{
+  position:absolute;inset:0;
+  display:none;align-items:center;justify-content:center;
+  flex-direction:column;gap:12px;background:#f1f3f4;z-index:2;
+}
+#browser-loading.show{display:flex}
+.br-spinner{
+  width:36px;height:36px;border:3px solid #e8eaed;
+  border-top-color:#8ab4f8;border-radius:50%;
+  animation:spin .7s linear infinite;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+#browser-loading p{font-size:.82rem;color:#5f6368;font-family:'Roboto',sans-serif}
+
+#browser-blocked{
+  position:absolute;inset:0;display:none;
+  align-items:center;justify-content:center;
+  flex-direction:column;gap:14px;background:#f8f9fa;z-index:2;padding:40px;text-align:center;
+}
+#browser-blocked.show{display:flex}
+#browser-blocked .block-icon{font-size:3rem}
+#browser-blocked h3{font-size:1rem;color:#202124;font-family:'Google Sans',sans-serif}
+#browser-blocked p{font-size:.8rem;color:#5f6368;line-height:1.5;max-width:340px}
+#browser-blocked .open-ext-btn{
+  padding:9px 20px;background:#8ab4f8;color:#202124;border:none;
+  border-radius:8px;font-family:'Google Sans',sans-serif;font-size:.82rem;
+  font-weight:600;cursor:pointer;transition:filter .15s;
+}
+#browser-blocked .open-ext-btn:hover{filter:brightness(1.08)}
+
+/* ── TEACHER NOTICE ── */
+#teacher-bar{
+  position:absolute;top:0;left:0;right:0;
+  padding:6px 16px;background:rgba(138,180,248,.1);
+  border-bottom:1px solid rgba(138,180,248,.2);
+  font-size:.72rem;color:var(--accent);
+  display:none;align-items:center;gap:8px;z-index:5;
+}
+#teacher-bar.visible{display:flex}
+
+/* tab bar for side panel */
+.panel-tabs{display:flex;border-bottom:1px solid #ffffff0f}
+.ptab{
+  flex:1;padding:12px;text-align:center;font-size:.78rem;font-weight:500;
+  color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;transition:all .15s;
+}
+.ptab.on{color:var(--accent);border-color:var(--accent)}
+
+/* teacher session section */
+.ts-section{padding:12px 16px;border-bottom:1px solid #ffffff0a}
+.ts-label{font-size:.65rem;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:8px;font-weight:500}
+.ts-row{display:flex;gap:6px;flex-wrap:wrap}
+.ts-btn{
+  display:flex;align-items:center;gap:5px;
+  background:var(--card);border:1px solid var(--border);
+  border-radius:8px;padding:6px 11px;
+  color:var(--muted);font-size:.72rem;font-family:'Roboto',sans-serif;
+  cursor:pointer;transition:all .15s;
+}
+.ts-btn:hover{border-color:var(--accent);color:var(--accent)}
+
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:10px}
+
+/* ── RECORDING SYSTEM ── */
+#rec-status-bar{
+  display:flex;align-items:center;gap:10px;
+  padding:12px 24px;background:var(--bg);
+  border-bottom:1px solid #ffffff0a;flex-shrink:0;
+}
+#rec-dot{
+  width:12px;height:12px;border-radius:50%;
+  background:var(--border);flex-shrink:0;
+  transition:all .3s;
+}
+#rec-dot.recording{
+  background:var(--warn);
+  box-shadow:0 0 10px var(--warn);
+  animation:rec-pulse 1s ease-in-out infinite;
+}
+#rec-dot.paused{
+  background:var(--yellow);
+  box-shadow:0 0 6px var(--yellow);
+}
+@keyframes rec-pulse{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.3);opacity:.7}}
+
+#rec-info{display:flex;align-items:center;gap:4px;flex:1;min-width:0}
+#rec-status-label{font-size:.82rem;font-weight:500;color:var(--text)}
+
+.rec-ctrl-btn{
+  display:flex;align-items:center;gap:6px;
+  padding:7px 16px;border-radius:8px;border:none;
+  font-family:'Google Sans',sans-serif;font-size:.78rem;font-weight:600;
+  cursor:pointer;transition:all .18s;white-space:nowrap;
+}
+.rec-start{background:var(--warn);color:#fff}
+.rec-start:hover{filter:brightness(1.1);transform:scale(1.03)}
+.rec-pause{background:#fdd66322;color:var(--yellow);border:1px solid #fdd66344}
+.rec-pause:hover{background:#fdd66333}
+.rec-stop{background:#f28b8222;color:var(--warn);border:1px solid #f28b8244}
+.rec-stop:hover{background:#f28b8233}
+
+.rec-access-notice{
+  display:flex;align-items:flex-start;gap:10px;
+  background:#8ab4f80d;border-left:3px solid var(--accent);
+  padding:12px 24px;font-size:.78rem;color:var(--muted);line-height:1.5;
+}
+.rec-access-notice span:first-child{font-size:1rem;flex-shrink:0;margin-top:1px}
+.rec-access-notice b{color:var(--accent)}
+
+/* Library entries */
+.rec-entry{
+  display:flex;align-items:center;gap:12px;
+  padding:12px 4px;border-bottom:1px solid #ffffff07;
+}
+.rec-entry:last-child{border-bottom:none}
+.rec-thumb{
+  width:64px;height:40px;border-radius:6px;
+  background:linear-gradient(135deg,#202124,#3c4043);
+  display:flex;align-items:center;justify-content:center;
+  font-size:1.2rem;flex-shrink:0;border:1px solid var(--border);
+}
+.rec-meta{flex:1;min-width:0}
+.rec-name{font-size:.82rem;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rec-details{font-size:.7rem;color:var(--muted);margin-top:3px;display:flex;gap:8px;flex-wrap:wrap}
+.rec-tag{
+  background:var(--card);border-radius:4px;
+  padding:1px 6px;font-size:.65rem;color:var(--muted);
+}
+.rec-actions{display:flex;gap:6px;flex-shrink:0}
+.rec-action-btn{
+  display:flex;align-items:center;gap:4px;
+  padding:5px 10px;border-radius:7px;border:1px solid var(--border);
+  background:var(--card);color:var(--muted);font-size:.72rem;
+  font-family:'Roboto',sans-serif;cursor:pointer;transition:all .15s;
+  white-space:nowrap;
+}
+.rec-action-btn:hover{border-color:var(--accent);color:var(--accent)}
+.rec-action-btn.download{border-color:#81c99533;color:var(--accent2);background:#81c9950a}
+.rec-action-btn.download:hover{background:#81c99522;border-color:var(--accent2)}
+.rec-action-btn.del{border-color:#f28b8233;color:var(--warn);background:#f28b820a}
+.rec-action-btn.del:hover{background:#f28b8222}
+
+/* Access control cards */
+.rec-access-card{
+  background:var(--bg);border:1px solid #ffffff0a;
+  border-radius:12px;overflow:hidden;
+}
+.rec-role-row{
+  display:flex;align-items:center;gap:12px;
+  padding:14px 16px;border-bottom:1px solid #ffffff07;
+}
+.rec-role-row:last-child{border-bottom:none}
+.rec-role-icon{
+  width:36px;height:36px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-size:1rem;flex-shrink:0;
+}
+.teacher-icon{background:#8ab4f822}
+.student-icon{background:#5f636822}
+.rec-role-info{flex:1;min-width:0}
+.rec-role-name{font-size:.82rem;font-weight:500}
+.rec-role-desc{font-size:.7rem;color:var(--muted);margin-top:2px;line-height:1.4}
+.rec-perm-badge{
+  font-size:.68rem;font-weight:600;padding:3px 10px;border-radius:20px;flex-shrink:0;
+}
+.perm-full{background:#81c9951a;color:var(--accent2);border:1px solid #81c99533}
+.perm-none{background:#f28b821a;color:var(--warn);border:1px solid #f28b8233}
+
+/* Storage bar */
+.rec-storage-bar-wrap{padding:4px 0}
+.rec-storage-bar{
+  width:100%;height:6px;border-radius:6px;
+  background:var(--card);overflow:hidden;
+}
+.rec-storage-bar div{
+  height:100%;background:var(--accent);border-radius:6px;
+  transition:width .5s ease;
+}
+
+/* Recording indicator banner (shown to students) */
+#rec-student-banner{
+  position:fixed;top:calc(var(--top-h) + 8px);left:50%;
+  transform:translateX(-50%);
+  background:rgba(242,139,130,.18);border:1px solid rgba(242,139,130,.4);
+  backdrop-filter:blur(8px);border-radius:20px;
+  padding:6px 18px;font-size:.72rem;color:var(--warn);
+  z-index:95;display:none;align-items:center;gap:8px;white-space:nowrap;
+}
+#rec-student-banner.show{display:flex}
+#rec-student-banner .rbdot{
+  width:8px;height:8px;border-radius:50%;background:var(--warn);
+  animation:rec-pulse 1s infinite;flex-shrink:0;
+}
+
+/* Record button in control bar — active state */
+#btn-record.recording{background:#ea433522;color:var(--warn)}
+#btn-record.recording:hover{background:#ea433533}
+#settings-overlay{
+  position:fixed;inset:0;
+  background:rgba(0,0,0,.55);
+  z-index:280;
+  display:none;
+  backdrop-filter:blur(3px);
+}
+#settings-overlay.open{display:block}
+
+#settings-drawer{
+  position:fixed;right:0;top:0;bottom:0;
+  width:min(520px,100vw);
+  background:var(--surface);
+  border-left:1px solid #ffffff12;
+  z-index:290;
+  display:flex;flex-direction:column;
+  transform:translateX(100%);
+  transition:transform .32s cubic-bezier(.4,0,.2,1);
+  box-shadow:-4px 0 40px rgba(0,0,0,.5);
+}
+#settings-drawer.open{transform:translateX(0)}
+
+#settings-header{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:20px 24px 16px;
+  border-bottom:1px solid #ffffff0f;
+  flex-shrink:0;
+}
+#settings-title{
+  display:flex;align-items:center;gap:10px;
+  font-family:'Google Sans',sans-serif;font-size:1.05rem;font-weight:700;
+}
+#settings-title-icon{font-size:1.2rem}
+#settings-close{
+  width:34px;height:34px;border-radius:50%;border:none;
+  background:var(--card);color:var(--muted);
+  cursor:pointer;font-size:.9rem;
+  display:flex;align-items:center;justify-content:center;
+  transition:all .15s;
+}
+#settings-close:hover{background:#5f636833;color:var(--text)}
+
+/* Tab bar */
+#settings-tabs{
+  display:flex;
+  border-bottom:1px solid #ffffff0f;
+  overflow-x:auto;flex-shrink:0;
+}
+#settings-tabs::-webkit-scrollbar{height:0}
+.stab{
+  display:flex;align-items:center;gap:6px;
+  padding:12px 18px;
+  border:none;background:transparent;
+  font-family:'Roboto',sans-serif;font-size:.78rem;font-weight:500;
+  color:var(--muted);cursor:pointer;
+  border-bottom:2px solid transparent;
+  transition:all .18s;white-space:nowrap;
+}
+.stab:hover{color:var(--text);background:#ffffff06}
+.stab.active{color:var(--accent);border-color:var(--accent);background:#8ab4f808}
+
+/* Body */
+#settings-body{
+  flex:1;overflow-y:auto;padding:0;
+}
+#settings-body::-webkit-scrollbar{width:4px}
+#settings-body::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px}
+
+.stab-content{display:none;padding:8px 0 24px}
+.stab-content.active{display:block}
+
+.s-section{
+  padding:16px 24px;
+  border-bottom:1px solid #ffffff07;
+}
+.s-section:last-child{border-bottom:none}
+.s-section-title{
+  font-size:.68rem;text-transform:uppercase;letter-spacing:1px;
+  color:var(--accent);font-weight:600;margin-bottom:14px;
+}
+.s-row{
+  display:flex;align-items:center;justify-content:space-between;
+  gap:12px;margin-bottom:12px;
+}
+.s-row:last-child{margin-bottom:0}
+.s-label{font-size:.82rem;color:var(--text);flex-shrink:0;min-width:140px}
+.s-sublabel{font-size:.7rem;color:var(--muted);margin-top:2px;line-height:1.4}
+.s-input{
+  flex:1;background:var(--card);border:1px solid var(--border);
+  border-radius:8px;padding:8px 12px;color:var(--text);
+  font-family:'Roboto',sans-serif;font-size:.8rem;outline:none;
+  transition:border-color .15s;
+}
+.s-input:focus{border-color:var(--accent)}
+.s-select{
+  background:var(--card);border:1px solid var(--border);
+  border-radius:8px;padding:8px 12px;color:var(--text);
+  font-family:'Roboto',sans-serif;font-size:.8rem;outline:none;
+  cursor:pointer;transition:border-color .15s;
+}
+.s-select:focus{border-color:var(--accent)}
+.s-select option{background:var(--surface)}
+.s-2col{
+  display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:4px;
+}
+.s-copy-btn{
+  background:var(--card);border:1px solid var(--border);
+  border-radius:8px;padding:7px 12px;color:var(--muted);
+  font-size:.75rem;font-family:'Roboto',sans-serif;cursor:pointer;
+  transition:all .15s;white-space:nowrap;
+}
+.s-copy-btn:hover{border-color:var(--accent);color:var(--accent)}
+
+/* Toggle */
+.s-toggle-row{
+  display:flex;align-items:center;justify-content:space-between;
+  gap:14px;padding:10px 0;
+  border-top:1px solid #ffffff07;
+}
+.s-toggle{position:relative;width:40px;height:22px;flex-shrink:0}
+.s-toggle input{opacity:0;width:0;height:0}
+.s-slider{
+  position:absolute;inset:0;
+  background:var(--border);border-radius:22px;cursor:pointer;
+  transition:background .2s;
+}
+.s-slider::before{
+  content:'';position:absolute;
+  width:16px;height:16px;border-radius:50%;
+  background:#fff;bottom:3px;left:3px;
+  transition:transform .2s;
+}
+.s-toggle input:checked + .s-slider{background:var(--accent)}
+.s-toggle input:checked + .s-slider::before{transform:translateX(18px)}
+
+/* NDI live bar */
+#ndi-live-bar{
+  display:flex;align-items:center;gap:10px;
+  padding:12px 24px;
+  background:var(--bg);
+  border-bottom:1px solid #ffffff0a;
+  flex-shrink:0;
+}
+#ndi-live-dot{
+  width:10px;height:10px;border-radius:50%;
+  background:var(--border);transition:all .3s;flex-shrink:0;
+}
+#ndi-live-dot.on{
+  background:var(--accent2);
+  box-shadow:0 0 8px var(--accent2);
+  animation:blink 1.5s ease-in-out infinite;
+}
+#ndi-live-label{font-size:.8rem;font-weight:500}
+.s-start-btn{
+  padding:7px 16px;background:var(--accent2);color:#202124;border:none;
+  border-radius:8px;font-family:'Google Sans',sans-serif;font-size:.78rem;
+  font-weight:600;cursor:pointer;transition:filter .15s;
+}
+.s-start-btn:hover{filter:brightness(1.1)}
+.s-stop-btn{
+  padding:7px 16px;background:#f28b8222;color:var(--warn);
+  border:1px solid #f28b8233;border-radius:8px;
+  font-family:'Google Sans',sans-serif;font-size:.78rem;font-weight:600;
+  cursor:pointer;transition:all .15s;
+}
+.s-stop-btn:hover{background:#f28b8233}
+
+/* Footer */
+#settings-footer{
+  padding:14px 24px;
+  border-top:1px solid #ffffff0f;
+  display:flex;align-items:center;justify-content:space-between;
+  flex-shrink:0;background:var(--bg);
+}
+#settings-version{font-size:.68rem;color:var(--muted)}
+</style>
+</head>
+<body>
+
+<!-- ████ JOIN SCREEN ████ -->
+<div id="join-screen">
+  <div class="join-wrap">
+    <div class="j-logo">Solidarity <span>in Action</span></div>
+    <p class="j-sub">Live online classroom — up to 150 participants.<br>NDI-enabled for broadcast integration.</p>
+    <div class="j-field">
+      <label>Your full name</label>
+      <input id="jname" type="text" placeholder="e.g. Ndumbe Stedriel" maxlength="40" autofocus/>
+    </div>
+    <div class="j-field">
+      <label>Session code</label>
+      <input id="jcode" type="text" placeholder="e.g. SIA-2026" value="SIA-2026" maxlength="20"/>
+    </div>
+    <div class="j-field">
+      <label>Join as</label>
+      <select id="jrole">
+        <option value="student">👤 Student</option>
+        <option value="teacher">👩‍🏫 Teacher / Administrator</option>
+      </select>
+    </div>
+    <button class="j-join-btn" onclick="joinSession()">Join now</button>
+    <p class="j-cap">Supports up to <b>150 participants</b> · NDI output ready</p>
+  </div>
+</div>
+
+<!-- ████ TOP BAR ████ -->
+<div id="topbar">
+  <div class="live-pill"><div class="live-dot"></div> LIVE</div>
+  <div class="logo-text">Solidarity <span>in Action</span></div>
+  <div class="session-chip" id="nav-code">SIA-2026</div>
+  <div class="spacer"></div>
+  <div id="participants-count">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+    <span id="pcount">1</span> / 150
+  </div>
+  <button class="top-btn" id="btn-board" title="Toggle Whiteboard" onclick="toggleBoard()">🖊</button>
+  <button class="top-btn" id="btn-browse-top" title="Open browser to illustrate (Teacher only)" onclick="openBrowser()" style="display:none;font-size:.78rem;width:auto;padding:0 12px;border-radius:20px;gap:6px;background:#fdd6631a;border:1px solid #fdd66333;color:#fdd663;">🔘 Browse</button>
+</div>
+
+<!-- ████ STAGE ████ -->
+<div id="stage">
+
+  <!-- MAIN VIEW -->
+  <div id="main-view">
+
+    <div id="teacher-bar">✦ You are the teacher — use the toolbar below the whiteboard to draw and teach</div>
+
+    <!-- WHITEBOARD -->
+    <div id="board-container">
+      <canvas id="board"></canvas>
+
+      <!-- Keyboard typing layer — overlays the canvas -->
+      <div id="type-layer"></div>
+      <div id="kboard-cursor"></div>
+      <div id="type-mode-bar">
+        ⌨️ Click anywhere on the board to place a text box, then type
+        &nbsp;·&nbsp; <kbd>Ctrl+B</kbd> Bold &nbsp;<kbd>Ctrl+I</kbd> Italic &nbsp;<kbd>Ctrl+U</kbd> Underline &nbsp;·&nbsp; drag to reposition
+      </div>
+
+      <!-- Mode indicator — center top of board -->
+      <div id="board-mode-indicator">
+        <div id="bmi-dot" style="background:var(--accent);box-shadow:0 0 6px var(--accent)"></div>
+        <span id="bmi-label">✏️ Drawing Mode</span>
+        <span id="bmi-hint">· draw, highlight, or add shapes</span>
+      </div>
+
+      <div id="board-label">📐 Whiteboard</div>
+      <div id="board-actions">
+        <button class="b-btn" onclick="undoDraw()">↩ Undo</button>
+        <button class="b-btn" onclick="clearBoard()">🗑 Clear</button>
+        <button class="b-btn" onclick="exportPNG()">⬇ Save</button>
+      </div>
+      <div id="text-cursor" contenteditable="true"></div>
+
+      <!-- ── IN-CLASS BROWSER PANEL (teacher only) ── -->
+      <div id="browser-panel">
+        <!-- URL / Nav Bar -->
+        <div id="browser-bar">
+          <button class="br-nav-btn" id="br-back" title="Back" onclick="brBack()">&#8592;</button>
+          <button class="br-nav-btn" id="br-fwd"  title="Forward" onclick="brForward()">&#8594;</button>
+          <button class="br-nav-btn" id="br-reload" title="Reload" onclick="brReload()">&#8635;</button>
+          <div id="browser-url-wrap">
+            <span class="lock-icon">🔒</span>
+            <input id="browser-url" type="text" placeholder="Search Google or type a URL…"
+              onkeydown="if(event.key==='Enter') brNavigate()" spellcheck="false" autocomplete="off"/>
+            <button id="browser-go" onclick="brNavigate()" title="Go">&#10148;</button>
+          </div>
+          <!-- Quick-access site buttons -->
+          <button class="br-quick-btn" onclick="brLoad('https://www.google.com')"><span>🔍</span> Google</button>
+          <button class="br-quick-btn" onclick="brLoad('https://www.wikipedia.org')"><span>📖</span> Wikipedia</button>
+          <button class="br-quick-btn" onclick="brLoad('https://www.youtube.com')"><span>▶️</span> YouTube</button>
+          <button class="br-quick-btn" onclick="brLoad('https://www.khanacademy.org')"><span>🎓</span> Khan</button>
+          <button id="browser-close-btn" onclick="closeBrowser()" title="Close browser">✕</button>
+        </div>
+
+        <!-- Shortcut chips -->
+        <div id="browser-shortcuts">
+          <span style="font-size:.68rem;color:#5f6368;margin-right:4px">Quick open:</span>
+          <div class="shortcut-chip" onclick="brLoad('https://www.google.com/maps')"><span>🗺</span> Maps</div>
+          <div class="shortcut-chip" onclick="brLoad('https://translate.google.com')"><span>🌐</span> Translate</div>
+          <div class="shortcut-chip" onclick="brLoad('https://www.desmos.com/calculator')"><span>📐</span> Desmos</div>
+          <div class="shortcut-chip" onclick="brLoad('https://www.wolframalpha.com')"><span>🧮</span> Wolfram</div>
+          <div class="shortcut-chip" onclick="brLoad('https://www.bbc.com/news')"><span>📰</span> BBC News</div>
+          <div class="shortcut-chip" onclick="brLoad('https://earth.google.com/web')"><span>🌍</span> Google Earth</div>
+          <div class="shortcut-chip" onclick="brLoad('https://www.nationalgeographic.com')"><span>📷</span> Nat Geo</div>
+          <div class="shortcut-chip" onclick="brLoad('https://www.britannica.com')"><span>📚</span> Britannica</div>
+        </div>
+
+        <!-- Frame area -->
+        <div id="browser-frame-wrap">
+          <!-- Loading spinner -->
+          <div id="browser-loading">
+            <div class="br-spinner"></div>
+            <p id="browser-loading-txt">Loading…</p>
+          </div>
+          <!-- Blocked / X-Frame notice -->
+          <div id="browser-blocked">
+            <div class="block-icon">🔒</div>
+            <h3>This page can't be shown inside the classroom</h3>
+            <p id="blocked-site-name" style="font-weight:600;color:#202124;font-size:.9rem;margin-bottom:4px"></p>
+            <p>Some websites (e.g. Google, YouTube) block embedding for security reasons. You can open it in a new tab to share your screen, or try a different resource.</p>
+            <button class="open-ext-btn" id="open-ext-btn" onclick="openExternal()">Open in new tab ↗</button>
+          </div>
+          <iframe id="browser-iframe"
+            sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-presentation"
+            referrerpolicy="no-referrer"
+            title="Classroom Browser"></iframe>
+        </div>
+      </div>
+      <!-- ── END BROWSER PANEL ── -->
+
+      <div id="poll-panel">
+        <h4>📊 Quick Poll — Do you understand?</h4>
+        <div class="poll-row">
+          <div class="poll-track">
+            <div class="poll-fill" style="width:72%;background:#81c995"></div>
+            <span class="poll-tlabel">Yes ✅</span>
+          </div>
+          <span class="poll-pct">72%</span>
+        </div>
+        <div class="poll-row">
+          <div class="poll-track">
+            <div class="poll-fill" style="width:18%;background:#f28b82"></div>
+            <span class="poll-tlabel">Not yet 🤔</span>
+          </div>
+          <span class="poll-pct">18%</span>
+        </div>
+        <div class="poll-row">
+          <div class="poll-track">
+            <div class="poll-fill" style="width:10%;background:#fdd663"></div>
+            <span class="poll-tlabel">Question ✋</span>
+          </div>
+          <span class="poll-pct">10%</span>
+        </div>
+        <button class="poll-close-btn" onclick="togglePoll()">Close poll</button>
+      </div>
+    </div>
+
+    <!-- TEACHER TOOLBAR — mode-switching -->
+    <div id="teacher-toolbar">
+
+      <!-- ══ MODE SWITCHER PILL ══ -->
+      <div id="mode-switcher">
+        <button id="mode-draw-btn" class="mode-pill active" onclick="switchMode('draw')">
+          ✏️ Draw
+        </button>
+        <button id="mode-type-btn" class="mode-pill" onclick="switchMode('type')">
+          ⌨️ Type
+        </button>
+      </div>
+
+      <div class="tb-sep"></div>
+
+      <!-- ══ DRAW MODE CONTROLS ══ -->
+      <div id="draw-controls" style="display:flex;align-items:center;gap:4px;flex-wrap:wrap">
+        <button class="tb-btn active" id="t-pen"    title="Pen"         onclick="setDrawTool('pen',this)">✏️</button>
+        <button class="tb-btn"        id="t-hl"     title="Highlighter" onclick="setDrawTool('hl',this)">🖊</button>
+        <button class="tb-btn"        id="t-arrow"  title="Arrow"       onclick="setDrawTool('arrow',this)">➜</button>
+        <button class="tb-btn"        id="t-rect"   title="Rectangle"   onclick="setDrawTool('rect',this)">▭</button>
+        <button class="tb-btn"        id="t-circle" title="Ellipse"     onclick="setDrawTool('circle',this)">◯</button>
+        <button class="tb-btn danger" id="t-eraser" title="Eraser"      onclick="setDrawTool('eraser',this)">◻</button>
+        <div class="tb-sep"></div>
+        <!-- Brush size -->
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#9aa0a6" stroke-width="2" style="flex-shrink:0"><circle cx="12" cy="12" r="10"/></svg>
+        <input class="brush-slider" type="range" id="bsize" min="1" max="32" value="3"
+          oninput="brushSize=+this.value;document.getElementById('bsize-val').textContent=this.value+'px'" title="Brush size"/>
+        <span id="bsize-val" style="font-size:.68rem;color:var(--muted);width:28px">3px</span>
+      </div>
+
+      <!-- ══ TYPE MODE CONTROLS ══ -->
+      <div id="type-controls" style="display:none;align-items:center;gap:4px;flex-wrap:wrap">
+        <!-- Font family -->
+        <select class="font-select" id="font-family" onchange="updateFontStyle()" title="Font family">
+          <option value="Roboto, sans-serif">Roboto</option>
+          <option value="Georgia, serif">Georgia</option>
+          <option value="'Courier New', monospace">Courier</option>
+          <option value="Arial, sans-serif">Arial</option>
+          <option value="'Times New Roman', serif">Times New Roman</option>
+          <option value="Impact, sans-serif">Impact</option>
+          <option value="'Comic Sans MS', cursive">Comic Sans</option>
+        </select>
+        <!-- Font size -->
+        <input class="font-num" type="number" id="font-size" value="20" min="8" max="120"
+          oninput="updateFontStyle()" title="Font size"/>
+        <span style="font-size:.65rem;color:var(--muted)">px</span>
+        <div class="tb-sep"></div>
+        <!-- B I U -->
+        <button class="fmt-btn" id="fmt-bold"      title="Bold (Ctrl+B)"      onclick="toggleFmt('bold')"><b>B</b></button>
+        <button class="fmt-btn" id="fmt-italic"    title="Italic (Ctrl+I)"    onclick="toggleFmt('italic')"><i>I</i></button>
+        <button class="fmt-btn" id="fmt-underline" title="Underline (Ctrl+U)" onclick="toggleFmt('underline')"><u>U</u></button>
+        <div class="tb-sep"></div>
+        <!-- Align -->
+        <button class="fmt-btn" id="fmt-left"   title="Align left"   onclick="setAlign('left')">⬛︎</button>
+        <button class="fmt-btn" id="fmt-center" title="Align center" onclick="setAlign('center')">▦</button>
+        <button class="fmt-btn" id="fmt-right"  title="Align right"  onclick="setAlign('right')">⬛</button>
+      </div>
+
+      <div class="tb-sep"></div>
+
+      <!-- ══ SHARED: COLORS (always visible) ══ -->
+      <div id="shared-colors" style="display:flex;align-items:center;gap:5px">
+        <div class="tb-color on"  style="background:#1a1a2e" onclick="setColor('#1a1a2e',this)"></div>
+        <div class="tb-color"     style="background:#8ab4f8" onclick="setColor('#8ab4f8',this)"></div>
+        <div class="tb-color"     style="background:#81c995" onclick="setColor('#81c995',this)"></div>
+        <div class="tb-color"     style="background:#f28b82" onclick="setColor('#f28b82',this)"></div>
+        <div class="tb-color"     style="background:#fdd663" onclick="setColor('#fdd663',this)"></div>
+        <div class="tb-color"     style="background:#c58af9" onclick="setColor('#c58af9',this)"></div>
+        <div class="tb-color"     style="background:#ff8a00" onclick="setColor('#ff8a00',this)"></div>
+        <div class="tb-color"     style="background:#ffffff;border:1px solid #5f636866" onclick="setColor('#ffffff',this)"></div>
+      </div>
+
+      <div class="tb-sep"></div>
+
+      <!-- ══ BROWSE ══ -->
+      <button id="t-browse"
+        title="Open Browser — browse the internet to illustrate"
+        onclick="openBrowser()"
+        style="display:flex;align-items:center;gap:5px;padding:0 12px;height:32px;font-size:.75rem;font-weight:600;color:#fdd663;background:#fdd6631a;border:1px solid #fdd66333;border-radius:10px;cursor:pointer;white-space:nowrap;transition:all .15s;">
+        🔘 Browse
+      </button>
+
+    </div>
+
+  </div>
+
+  <!-- SIDE TILES (student video boxes) -->
+  <div id="tiles-col" id="tiles-col"></div>
+</div>
+
+<!-- ████ BOTTOM CONTROL BAR ████ -->
+<div id="ctrlbar">
+  <div class="bar-group">
+    <div class="ctrl-btn-wrap">
+      <button class="ctrl-btn" id="btn-mic" onclick="toggleMic()" title="Mute/Unmute">🎙</button>
+      <span class="ctrl-label">Mute</span>
+    </div>
+    <div class="ctrl-btn-wrap">
+      <button class="ctrl-btn" id="btn-cam" onclick="toggleCam()" title="Camera on/off">📷</button>
+      <span class="ctrl-label">Camera</span>
+    </div>
+    <div class="ctrl-btn-wrap">
+      <button class="ctrl-btn" id="btn-hand" onclick="raiseHand()" title="Raise hand">✋</button>
+      <span class="ctrl-label">Raise hand</span>
+    </div>
+  </div>
+
+  <div class="bar-group">
+    <button class="end-call" onclick="leaveConfirm()">
+      ☎ Leave
+    </button>
+  </div>
+
+  <div class="bar-group">
+    <div class="ctrl-btn-wrap">
+      <button class="ctrl-btn" id="btn-chat" onclick="openPanel('chat')" title="Chat">💬</button>
+      <span class="ctrl-label">Chat</span>
+    </div>
+    <div class="ctrl-btn-wrap">
+      <button class="ctrl-btn" id="btn-people" onclick="openPanel('people')" title="Participants">👥</button>
+      <span class="ctrl-label">People</span>
+    </div>
+    <div class="ctrl-btn-wrap" id="poll-wrap" style="display:none">
+      <button class="ctrl-btn" onclick="togglePoll()" title="Poll">📊</button>
+      <span class="ctrl-label">Poll</span>
+    </div>
+    <div class="ctrl-btn-wrap" id="muteall-wrap" style="display:none">
+      <button class="ctrl-btn" onclick="muteAll()" title="Mute all">🔇</button>
+      <span class="ctrl-label">Mute all</span>
+    </div>
+    <div class="ctrl-btn-wrap" id="lower-wrap" style="display:none">
+      <button class="ctrl-btn" onclick="lowerAll()" title="Lower all hands">✋</button>
+      <span class="ctrl-label">Lower hands</span>
+    </div>
+    <div class="ctrl-btn-wrap" id="rec-bar-wrap" style="display:none">
+      <button class="ctrl-btn" id="btn-record" onclick="quickRecord()" title="Record session (Teacher only)">⏺</button>
+      <span class="ctrl-label" id="rec-bar-label">Record</span>
+    </div>
+    <div class="ctrl-btn-wrap">
+      <button class="ctrl-btn" id="btn-settings" onclick="openSettings()" title="Settings">⚙️</button>
+      <span class="ctrl-label">Settings</span>
+    </div>
+  </div>
+</div>
+
+<!-- ████ SIDE PANEL (chat / people) ████ -->
+<div id="side-panel">
+  <div class="panel-tabs">
+    <div class="ptab on" id="ptab-chat" onclick="switchPanelTab('chat')">Chat</div>
+    <div class="ptab" id="ptab-people" onclick="switchPanelTab('people')">People</div>
+  </div>
+
+  <!-- CHAT TAB -->
+  <div id="chat-tab" style="display:flex;flex-direction:column;flex:1;overflow:hidden">
+    <div id="chat-msgs"></div>
+    <div id="chat-input-row">
+      <textarea id="chat-box" rows="1" placeholder="Send a message…" maxlength="500"
+        onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMsg()}"></textarea>
+      <button id="chat-send" onclick="sendMsg()">➤</button>
+    </div>
+  </div>
+
+  <!-- PEOPLE TAB -->
+  <div id="people-tab" style="display:none;flex-direction:column;flex:1;overflow:hidden">
+    <div id="teacher-session-controls" style="display:none">
+      <div class="ts-section">
+        <div class="ts-label">Teacher controls</div>
+        <div class="ts-row">
+          <button class="ts-btn" onclick="muteAll()">🔇 Mute all</button>
+          <button class="ts-btn" onclick="lowerAll()">✋ Lower hands</button>
+          <button class="ts-btn" onclick="togglePoll()">📊 Poll</button>
+          <button class="ts-btn" onclick="clearBoard()">🗑 Clear board</button>
+        </div>
+      </div>
+    </div>
+    <div id="people-list"></div>
+  </div>
+
+  <button class="panel-close" style="position:absolute;top:10px;right:12px" onclick="closePanel()">✕</button>
+</div>
+
+<!-- ████ SETTINGS DRAWER ████ -->
+<div id="settings-overlay" onclick="if(event.target===this)closeSettings()"></div>
+<div id="settings-drawer">
+
+  <!-- Header -->
+  <div id="settings-header">
+    <div id="settings-title">
+      <span id="settings-title-icon">⚙️</span>
+      <span id="settings-title-text">Settings</span>
+    </div>
+    <button id="settings-close" onclick="closeSettings()">✕</button>
+  </div>
+
+  <!-- Tab bar -->
+  <div id="settings-tabs">
+    <button class="stab active" id="stab-general"      onclick="openSettingsTab('general')">
+      <span>🏠</span> General
+    </button>
+    <button class="stab" id="stab-ndi"         onclick="openSettingsTab('ndi')">
+      <span>📡</span> NDI & Stream
+    </button>
+    <button class="stab" id="stab-recording"   onclick="openSettingsTab('recording')">
+      <span>⏺</span> Recording
+    </button>
+    <button class="stab" id="stab-links"       onclick="openSettingsTab('links')">
+      <span>🔗</span> Links
+    </button>
+    <button class="stab" id="stab-integrations" onclick="openSettingsTab('integrations')">
+      <span>🔌</span> Integrations
+    </button>
+    <button class="stab" id="stab-av"          onclick="openSettingsTab('av')">
+      <span>🎙</span> Audio & Video
+    </button>
+  </div>
+
+  <!-- Tab bodies -->
+  <div id="settings-body">
+
+    <!-- ── GENERAL TAB ── -->
+    <div class="stab-content active" id="scont-general">
+      <div class="s-section">
+        <div class="s-section-title">Session</div>
+        <div class="s-row">
+          <div class="s-label">Session name</div>
+          <input class="s-input" id="s-session-name" value="Solidarity in Action — Class 1"/>
+        </div>
+        <div class="s-row">
+          <div class="s-label">Session code</div>
+          <div style="display:flex;gap:8px;align-items:center">
+            <input class="s-input" id="s-session-code" value="SIA-2026" style="width:120px"/>
+            <button class="s-copy-btn" onclick="copySessionCode()">📋 Copy</button>
+          </div>
+        </div>
+        <div class="s-row">
+          <div class="s-label">Max participants</div>
+          <select class="s-select">
+            <option selected>150</option><option>100</option><option>75</option><option>50</option><option>25</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="s-section">
+        <div class="s-section-title">Appearance</div>
+        <div class="s-row">
+          <div class="s-label">Theme</div>
+          <select class="s-select">
+            <option selected>Dark (default)</option><option>Light</option><option>High contrast</option>
+          </select>
+        </div>
+        <div class="s-toggle-row">
+          <div>
+            <div class="s-label">Show participant count in top bar</div>
+            <div class="s-sublabel">Displays live count of joined participants</div>
+          </div>
+          <label class="s-toggle"><input type="checkbox" checked onchange="toast(this.checked?'Participant count shown':'Participant count hidden')"/><span class="s-slider"></span></label>
+        </div>
+        <div class="s-toggle-row">
+          <div>
+            <div class="s-label">Show board mode indicator</div>
+            <div class="s-sublabel">Draw / Type indicator badge on whiteboard</div>
+          </div>
+          <label class="s-toggle"><input type="checkbox" checked onchange="document.getElementById('board-mode-indicator').style.display=this.checked?'':'none'"/><span class="s-slider"></span></label>
+        </div>
+        <div class="s-toggle-row">
+          <div>
+            <div class="s-label">Animate speaking tiles</div>
+            <div class="s-sublabel">Green border pulse when a student is detected speaking</div>
+          </div>
+          <label class="s-toggle"><input type="checkbox" checked/><span class="s-slider"></span></label>
+        </div>
+      </div>
+
+      <div class="s-section">
+        <div class="s-section-title">Whiteboard</div>
+        <div class="s-toggle-row">
+          <div>
+            <div class="s-label">Students can see whiteboard</div>
+            <div class="s-sublabel">Broadcast board content to all participants</div>
+          </div>
+          <label class="s-toggle"><input type="checkbox" checked/><span class="s-slider"></span></label>
+        </div>
+        <div class="s-toggle-row">
+          <div>
+            <div class="s-label">Save board on session end</div>
+            <div class="s-sublabel">Auto-download board as PNG when session closes</div>
+          </div>
+          <label class="s-toggle"><input type="checkbox"/><span class="s-slider"></span></label>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── RECORDING TAB ── -->
+    <div class="stab-content" id="scont-recording">
+
+      <!-- Live recording status bar -->
+      <div id="rec-status-bar">
+        <div id="rec-dot"></div>
+        <div id="rec-info">
+          <span id="rec-status-label">Not recording</span>
+          <span id="rec-timer" style="display:none;font-family:monospace;font-size:.82rem;color:var(--warn);margin-left:10px">00:00:00</span>
+        </div>
+        <div style="flex:1"></div>
+        <button class="rec-ctrl-btn rec-start" id="rec-start-btn" onclick="startRecording()">
+          <span>⏺</span> Start Recording
+        </button>
+        <button class="rec-ctrl-btn rec-pause" id="rec-pause-btn" onclick="pauseRecording()" style="display:none">
+          <span>⏸</span> Pause
+        </button>
+        <button class="rec-ctrl-btn rec-stop"  id="rec-stop-btn"  onclick="stopRecording()"  style="display:none">
+          <span>⏹</span> Stop & Save
+        </button>
+      </div>
+
+      <!-- Teacher-only access notice -->
+      <div class="rec-access-notice">
+        <span>🔒</span>
+        <span>Recording is restricted to the <b>Teacher / Administrator</b> only. Students cannot access, view, or download recordings.</span>
+      </div>
+
+      <!-- Recording Settings -->
+      <div class="s-section">
+        <div class="s-section-title">Recording Configuration</div>
+        <div class="s-row">
+          <div class="s-label">Record what</div>
+          <select class="s-select" id="rec-source">
+            <option value="board">Whiteboard only</option>
+            <option value="screen" selected>Full session (board + tiles)</option>
+            <option value="audio">Audio only</option>
+          </select>
+        </div>
+        <div class="s-row">
+          <div class="s-label">Video quality</div>
+          <select class="s-select" id="rec-quality">
+            <option value="1080">1080p Full HD</option>
+            <option value="720" selected>720p HD</option>
+            <option value="480">480p Standard</option>
+          </select>
+        </div>
+        <div class="s-row">
+          <div class="s-label">Output format</div>
+          <select class="s-select" id="rec-format">
+            <option value="webm" selected>WebM (browser native)</option>
+            <option value="mp4">MP4 (H.264)</option>
+          </select>
+        </div>
+        <div class="s-row">
+          <div class="s-label">Frame rate</div>
+          <select class="s-select" id="rec-fps">
+            <option value="30" selected>30 fps</option>
+            <option value="25">25 fps</option>
+            <option value="15">15 fps (low bandwidth)</option>
+          </select>
+        </div>
+        <div class="s-toggle-row">
+          <div>
+            <div class="s-label">Include microphone audio</div>
+            <div class="s-sublabel">Record teacher's voice alongside the session</div>
+          </div>
+          <label class="s-toggle"><input type="checkbox" id="rec-mic" checked/><span class="s-slider"></span></label>
+        </div>
+        <div class="s-toggle-row">
+          <div>
+            <div class="s-label">Auto-download on stop</div>
+            <div class="s-sublabel">Immediately save the recording to your device when stopped</div>
+          </div>
+          <label class="s-toggle"><input type="checkbox" id="rec-autodl" checked/><span class="s-slider"></span></label>
+        </div>
+        <div class="s-toggle-row">
+          <div>
+            <div class="s-label">Notify students when recording</div>
+            <div class="s-sublabel">Show a "Recording in progress" banner to all participants</div>
+          </div>
+          <label class="s-toggle"><input type="checkbox" id="rec-notify" checked/><span class="s-slider"></span></label>
+        </div>
+      </div>
+
+      <!-- Recording Library -->
+      <div class="s-section">
+        <div class="s-section-title">
+          Recording Library
+          <span id="rec-library-count" style="margin-left:8px;background:var(--card);border-radius:10px;padding:1px 8px;font-size:.68rem;color:var(--muted);font-weight:400">0 recordings</span>
+        </div>
+        <div id="rec-library-empty" style="text-align:center;padding:28px 0;color:var(--muted);font-size:.8rem">
+          <div style="font-size:2.2rem;margin-bottom:10px">🎬</div>
+          No recordings yet.<br>
+          <span style="font-size:.72rem">Start a recording above — saved recordings appear here.</span>
+        </div>
+        <div id="rec-library-list"></div>
+      </div>
+
+      <!-- Access Control -->
+      <div class="s-section">
+        <div class="s-section-title">Access Control</div>
+        <div class="rec-access-card">
+          <div class="rec-role-row">
+            <div class="rec-role-icon teacher-icon">👩‍🏫</div>
+            <div class="rec-role-info">
+              <div class="rec-role-name">Teacher / Administrator</div>
+              <div class="rec-role-desc">Full access — can record, pause, stop, view, download, and delete all recordings</div>
+            </div>
+            <div class="rec-perm-badge perm-full">Full Access</div>
+          </div>
+          <div class="rec-role-row">
+            <div class="rec-role-icon student-icon">👤</div>
+            <div class="rec-role-info">
+              <div class="rec-role-name">Students</div>
+              <div class="rec-role-desc">No access — cannot start, stop, view, or download any recordings</div>
+            </div>
+            <div class="rec-perm-badge perm-none">No Access</div>
+          </div>
+        </div>
+        <div class="s-toggle-row" style="margin-top:12px">
+          <div>
+            <div class="s-label">Share recording with students after session</div>
+            <div class="s-sublabel">Teacher manually shares a download link after the session ends</div>
+          </div>
+          <label class="s-toggle"><input type="checkbox" id="rec-share-after"/><span class="s-slider"></span></label>
+        </div>
+      </div>
+
+      <!-- Storage info -->
+      <div class="s-section">
+        <div class="s-section-title">Storage</div>
+        <div class="rec-storage-bar-wrap">
+          <div style="display:flex;justify-content:space-between;margin-bottom:6px">
+            <span style="font-size:.75rem;color:var(--text)">Session storage used</span>
+            <span id="rec-storage-used" style="font-size:.75rem;color:var(--muted)">0 MB / browser limit</span>
+          </div>
+          <div class="rec-storage-bar"><div id="rec-storage-fill" style="width:0%"></div></div>
+          <div style="font-size:.7rem;color:var(--muted);margin-top:6px">Recordings are stored in your browser session. Download to save permanently before closing the tab.</div>
+        </div>
+      </div>
+
+    </div>
+    <!-- ── END RECORDING TAB ── -->
+
+    <!-- ── LINKS TAB ── -->
+    <div class="stab-content" id="scont-links">
+
+      <!-- Teacher-only access notice -->
+      <div class="rec-access-notice" style="border-color:#c58af9;background:#c58af90d">
+        <span>🔒</span>
+        <span>Only the <b style="color:#c58af9">Teacher / Administrator</b> can generate, manage, and revoke session invite links. Students cannot access this section.</span>
+      </div>
+
+      <!-- Generate new link section -->
+      <div class="s-section">
+        <div class="s-section-title">Generate Invite Link</div>
+        <div class="s-row">
+          <div class="s-label">Label / Class name</div>
+          <input class="s-input" id="link-label" placeholder="e.g. Monday Morning Class, Week 3…" maxlength="60"/>
+        </div>
+        <div class="s-row">
+          <div class="s-label">Expiry duration</div>
+          <select class="s-select" id="link-expiry">
+            <option value="2592000000" selected>1 month (30 days) — recommended</option>
+            <option value="604800000">1 week (7 days)</option>
+            <option value="259200000">3 days</option>
+            <option value="86400000">24 hours</option>
+          </select>
+        </div>
+        <div class="s-row">
+          <div class="s-label">Max uses</div>
+          <select class="s-select" id="link-max-uses">
+            <option value="0" selected>Unlimited (within expiry window)</option>
+            <option value="150">150 uses</option>
+            <option value="100">100 uses</option>
+            <option value="50">50 uses</option>
+            <option value="25">25 uses</option>
+            <option value="10">10 uses</option>
+            <option value="1">Single use (1 person)</option>
+          </select>
+        </div>
+        <div class="s-toggle-row">
+          <div>
+            <div class="s-label">Require name on join</div>
+            <div class="s-sublabel">Students must enter their full name before entering</div>
+          </div>
+          <label class="s-toggle"><input type="checkbox" id="link-req-name" checked/><span class="s-slider"></span></label>
+        </div>
+        <div class="s-toggle-row">
+          <div>
+            <div class="s-label">Allow link to be shared further</div>
+            <div class="s-sublabel">Students can forward this link to others (within expiry)</div>
+          </div>
+          <label class="s-toggle"><input type="checkbox" id="link-shareable"/><span class="s-slider"></span></label>
+        </div>
+
+        <button class="link-gen-btn" onclick="generateLink()">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+          Generate Invite Link
+        </button>
+
+        <!-- Generated link preview (hidden until generated) -->
+        <div id="link-result-box" style="display:none">
+          <div class="link-result-header">
+            <span class="link-result-icon">✅</span>
+            <span class="link-result-title">Link generated successfully</span>
+          </div>
+          <div class="link-url-wrap">
+            <div class="link-url-text" id="link-url-display"></div>
+            <button class="link-copy-btn" id="link-copy-btn" onclick="copyLatestLink()">📋 Copy</button>
+          </div>
+          <div class="link-meta-row">
+            <span class="link-meta-chip" id="link-meta-expiry">⏱ Expires —</span>
+            <span class="link-meta-chip" id="link-meta-uses">👥 Uses —</span>
+            <span class="link-meta-chip" id="link-meta-label">🏷 —</span>
+          </div>
+          <div style="display:flex;gap:8px;margin-top:10px">
+            <button class="link-share-btn" onclick="shareLatestLink()">
+              📤 Share via…
+            </button>
+            <button class="link-share-btn" style="background:#3c4043;color:var(--muted)" onclick="sendLinkToChat()">
+              💬 Post to class chat
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Link library -->
+      <div class="s-section">
+        <div class="s-section-title">
+          Active Links
+          <span id="link-count-badge" style="margin-left:8px;background:var(--card);border-radius:10px;padding:1px 8px;font-size:.68rem;color:var(--muted);font-weight:400">0 links</span>
+        </div>
+        <div id="links-empty" style="text-align:center;padding:28px 0;color:var(--muted);font-size:.8rem">
+          <div style="font-size:2.2rem;margin-bottom:10px">🔗</div>
+          No links yet.<br>
+          <span style="font-size:.72rem">Generate a link above to invite students to your class.</span>
+        </div>
+        <div id="links-list"></div>
+      </div>
+
+      <!-- How it works -->
+      <div class="s-section">
+        <div class="s-section-title">How Invite Links Work</div>
+        <div class="link-how-list">
+          <div class="link-how-item">
+            <div class="link-how-num">1</div>
+            <div class="link-how-text">Teacher generates a unique invite link from this panel and shares it with students via chat, email, or any messaging app.</div>
+          </div>
+          <div class="link-how-item">
+            <div class="link-how-num">2</div>
+            <div class="link-how-text">Each link contains a cryptographic token with the session code and an expiry timestamp baked in — it cannot be altered.</div>
+          </div>
+          <div class="link-how-item">
+            <div class="link-how-num">3</div>
+            <div class="link-how-text">The link expires automatically after 30 days (or the chosen duration). Expired links redirect to an "Access Expired" page — no one can join.</div>
+          </div>
+          <div class="link-how-item">
+            <div class="link-how-num">4</div>
+            <div class="link-how-text">The teacher can revoke any link at any time from the Active Links table above, immediately blocking all future use.</div>
+          </div>
+          <div class="link-how-item">
+            <div class="link-how-num">5</div>
+            <div class="link-how-text">Each link is single-session only — once expired or revoked, it can never be reactivated. A new link must be generated for the next class.</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+    <!-- ── END LINKS TAB ── -->
+
+    <!-- ── NDI & STREAM TAB ── -->
+    <div class="stab-content" id="scont-ndi">
+
+      <!-- NDI live status bar -->
+      <div id="ndi-live-bar">
+        <div id="ndi-live-dot"></div>
+        <span id="ndi-live-label">NDI Output — Not streaming</span>
+        <div style="flex:1"></div>
+        <button class="s-start-btn" id="ndi-start-btn" onclick="startNDI()">▶ Start NDI</button>
+        <button class="s-stop-btn"  id="ndi-stop-btn"  onclick="stopNDI()" style="display:none">■ Stop</button>
+      </div>
+
+      <div class="s-section">
+        <div class="s-section-title">NDI Stream Configuration</div>
+        <div class="s-row">
+          <div class="s-label">NDI Source Name</div>
+          <input class="s-input" id="ndi-name" value="SIA-Classroom-1" oninput="document.getElementById('ndi-src-name').textContent=this.value"/>
+        </div>
+        <div class="s-2col">
+          <div>
+            <div class="s-label" style="margin-bottom:5px">Resolution</div>
+            <select class="s-select" id="ndi-res" style="width:100%">
+              <option>1920×1080 (Full HD)</option>
+              <option>1280×720 (HD)</option>
+              <option>3840×2160 (4K UHD)</option>
+              <option>1280×1080 (SD+)</option>
+            </select>
+          </div>
+          <div>
+            <div class="s-label" style="margin-bottom:5px">Frame Rate</div>
+            <select class="s-select" style="width:100%">
+              <option>60 fps</option><option selected>30 fps</option><option>25 fps</option><option>24 fps</option>
+            </select>
+          </div>
+          <div>
+            <div class="s-label" style="margin-bottom:5px">Audio Channels</div>
+            <select class="s-select" style="width:100%">
+              <option>Stereo (2ch)</option><option>Mono (1ch)</option><option>None</option>
+            </select>
+          </div>
+          <div>
+            <div class="s-label" style="margin-bottom:5px">Colour Space</div>
+            <select class="s-select" style="width:100%">
+              <option selected>UYVY (4:2:2)</option><option>BGRA (4:4:4)</option>
+            </select>
+          </div>
+        </div>
+        <div class="s-toggle-row" style="margin-top:10px">
+          <div>
+            <div class="s-label">NDI HX3 (low bandwidth)</div>
+            <div class="s-sublabel">Compressed transport — uses less network bandwidth</div>
+          </div>
+          <label class="s-toggle"><input type="checkbox"/><span class="s-slider"></span></label>
+        </div>
+        <div class="s-toggle-row">
+          <div>
+            <div class="s-label">Multicast output</div>
+            <div class="s-sublabel">Send to multiple receivers simultaneously on LAN</div>
+          </div>
+          <label class="s-toggle"><input type="checkbox"/><span class="s-slider"></span></label>
+        </div>
+      </div>
+
+      <div class="s-section">
+        <div class="s-section-title">Connection Info</div>
+        <div class="ndi-info-box" style="font-size:.74rem;line-height:2">
+          NDI Source: <b id="ndi-src-name">SIA-Classroom-1</b><br>
+          Protocol: <b>NDI 5.x / HX3</b><br>
+          Discovery: <b>Local LAN · mDNS auto-discovery</b><br>
+          Compatible: <b>vMix · OBS · Resolume · Wirecast · XSplit · Zoom VirtualCam</b>
+        </div>
+      </div>
+
+      <div class="s-section">
+        <div class="s-section-title">Additional Streaming</div>
+        <div class="s-row">
+          <div class="s-label">RTMP / SRT endpoint (optional)</div>
+          <input class="s-input" placeholder="rtmp://your-server/live/stream-key"/>
+        </div>
+        <div class="s-row">
+          <div class="s-label">Stream key</div>
+          <input class="s-input" type="password" placeholder="••••••••••••"/>
+        </div>
+        <button class="s-copy-btn" style="margin-top:4px">▶ Connect RTMP/SRT</button>
+      </div>
+
+    </div>
+
+    <!-- ── INTEGRATIONS TAB ── -->
+    <div class="stab-content" id="scont-integrations">
+      <div class="s-section">
+        <div class="s-section-title">Software Integrations</div>
+        <div class="int-card"><div class="int-icon">🎬</div><div class="int-info"><div class="int-name">vMix</div><div class="int-desc">Add the NDI source inside vMix for live switching and production.</div></div><span class="int-status st-ready">Ready via NDI</span></div>
+        <div class="int-card"><div class="int-icon">📹</div><div class="int-info"><div class="int-name">OBS Studio</div><div class="int-desc">Install obs-ndi plugin, then add as NDI source in a scene.</div></div><span class="int-status st-ready">Ready via NDI</span></div>
+        <div class="int-card"><div class="int-icon">🎞</div><div class="int-info"><div class="int-name">Wirecast / XSplit</div><div class="int-desc">Auto-discovered on the same local network via mDNS.</div></div><span class="int-status st-avail">Available</span></div>
+        <div class="int-card"><div class="int-icon">🖥</div><div class="int-info"><div class="int-name">Zoom · Teams · Meet</div><div class="int-desc">Use NDI Virtual Camera to route classroom into any video call.</div></div><span class="int-status st-avail">Via NDI VirtualCam</span></div>
+        <div class="int-card"><div class="int-icon">🎨</div><div class="int-info"><div class="int-name">Resolume Avenue</div><div class="int-desc">Stream board content as a live visual source for VJ setups.</div></div><span class="int-status st-avail">Available</span></div>
+        <div class="int-card"><div class="int-icon">☁️</div><div class="int-info"><div class="int-name">AWS MediaLive / Elemental</div><div class="int-desc">Bridge NDI to cloud via SRT or RTMP for scalable delivery.</div></div><span class="int-status st-coming">Bridge Required</span></div>
+        <div class="int-card"><div class="int-icon">📺</div><div class="int-info"><div class="int-name">Tricaster / TriCaster Mini</div><div class="int-desc">Native NDI support — add source directly in the switcher.</div></div><span class="int-status st-ready">Ready via NDI</span></div>
+      </div>
+    </div>
+
+    <!-- ── AUDIO & VIDEO TAB ── -->
+    <div class="stab-content" id="scont-av">
+      <div class="s-section">
+        <div class="s-section-title">Microphone</div>
+        <div class="s-row">
+          <div class="s-label">Input device</div>
+          <select class="s-select"><option>Default — System Microphone</option><option>USB Headset Mic</option><option>Built-in Mic</option></select>
+        </div>
+        <div class="s-row">
+          <div class="s-label">Input volume</div>
+          <input type="range" min="0" max="100" value="80" style="-webkit-appearance:none;width:100%;height:4px;border-radius:4px;background:#5f6368;outline:none" oninput="this.nextElementSibling.textContent=this.value+'%'"/>
+          <span style="font-size:.72rem;color:var(--muted);width:34px;text-align:right">80%</span>
+        </div>
+        <div class="s-toggle-row">
+          <div><div class="s-label">Noise suppression</div><div class="s-sublabel">AI-powered background noise removal</div></div>
+          <label class="s-toggle"><input type="checkbox" checked/><span class="s-slider"></span></label>
+        </div>
+        <div class="s-toggle-row">
+          <div><div class="s-label">Echo cancellation</div><div class="s-sublabel">Prevents audio feedback loops</div></div>
+          <label class="s-toggle"><input type="checkbox" checked/><span class="s-slider"></span></label>
+        </div>
+      </div>
+      <div class="s-section">
+        <div class="s-section-title">Camera</div>
+        <div class="s-row">
+          <div class="s-label">Camera device</div>
+          <select class="s-select"><option>Default — Built-in Camera</option><option>USB Webcam HD</option><option>NDI Virtual Camera</option></select>
+        </div>
+        <div class="s-row">
+          <div class="s-label">Video resolution</div>
+          <select class="s-select"><option selected>1280×720 (HD)</option><option>1920×1080 (Full HD)</option><option>640×480 (SD)</option></select>
+        </div>
+        <div class="s-toggle-row">
+          <div><div class="s-label">Mirror my video</div><div class="s-sublabel">Flip camera preview horizontally</div></div>
+          <label class="s-toggle"><input type="checkbox"/><span class="s-slider"></span></label>
+        </div>
+        <div class="s-toggle-row">
+          <div><div class="s-label">HD video</div><div class="s-sublabel">Send higher quality video (uses more bandwidth)</div></div>
+          <label class="s-toggle"><input type="checkbox" checked/><span class="s-slider"></span></label>
+        </div>
+      </div>
+      <div class="s-section">
+        <div class="s-section-title">Speaker / Output</div>
+        <div class="s-row">
+          <div class="s-label">Output device</div>
+          <select class="s-select"><option>Default — System Speaker</option><option>USB Headset</option><option>Built-in Speaker</option></select>
+        </div>
+        <div class="s-row">
+          <div class="s-label">Output volume</div>
+          <input type="range" min="0" max="100" value="90" style="-webkit-appearance:none;width:100%;height:4px;border-radius:4px;background:#5f6368;outline:none" oninput="this.nextElementSibling.textContent=this.value+'%'"/>
+          <span style="font-size:.72rem;color:var(--muted);width:34px;text-align:right">90%</span>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- end settings-body -->
+
+  <!-- Footer -->
+  <div id="settings-footer">
+    <span id="settings-version">Solidarity in Action · v2.0 · NDI Ready</span>
+    <div style="display:flex;gap:8px">
+      <button class="mbtn mbtn-ghost" onclick="closeSettings()">Close</button>
+      <button class="mbtn mbtn-primary" onclick="saveSettings()">Save changes</button>
+    </div>
+  </div>
+
+</div>
+<!-- ████ END SETTINGS DRAWER ████ -->
+
+<div id="toast"></div>
+
+<!-- Camera / mic permission denied notice -->
+<div id="media-denied">
+  <span>⚠️ Camera or microphone access was denied. Check your browser permissions and reload.</span>
+  <button onclick="retryMedia()">Retry</button>
+  <button onclick="this.closest('#media-denied').classList.remove('show')" style="background:var(--card);color:var(--text)">Dismiss</button>
+</div>
+
+<!-- Recording-in-progress banner (shown to students when teacher is recording) -->
+<div id="rec-student-banner">
+  <div class="rbdot"></div>
+  ⏺ This session is being recorded by the teacher
+</div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script src="/js/webrtc.js"></script>
+<script src="/js/app.js"></script>
+
+</body>
+</html>
